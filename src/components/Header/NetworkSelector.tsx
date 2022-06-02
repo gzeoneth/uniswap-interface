@@ -1,5 +1,6 @@
 import { Trans } from '@lingui/macro'
 import { useWeb3React } from '@web3-react/core'
+import { fortmatic } from 'connectors'
 import { CHAIN_INFO } from 'constants/chainInfo'
 import { CHAIN_IDS_TO_NAMES, SupportedChainId } from 'constants/chains'
 import { useOnClickOutside } from 'hooks/useOnClickOutside'
@@ -10,13 +11,11 @@ import { useCallback, useEffect, useRef } from 'react'
 import { ArrowDownCircle, ChevronDown } from 'react-feather'
 import { useHistory } from 'react-router-dom'
 import { useModalOpen, useToggleModal } from 'state/application/hooks'
-import { addPopup, ApplicationModal } from 'state/application/reducer'
+import { ApplicationModal } from 'state/application/reducer'
 import styled from 'styled-components/macro'
 import { ExternalLink, MEDIA_WIDTHS } from 'theme'
 import { replaceURLParam } from 'utils/routes'
-import { switchToNetwork } from 'utils/switchToNetwork'
-
-import { useAppDispatch } from '../../state/hooks'
+import { switchChain } from 'utils/switchToNetwork'
 
 const ActiveRowLinkList = styled.div`
   display: flex;
@@ -251,37 +250,17 @@ export default function NetworkSelector() {
 
   const info = chainId ? CHAIN_INFO[chainId] : undefined
 
-  const dispatch = useAppDispatch()
-
-  const handleChainSwitch = useCallback(
-    (targetChain: number, skipToggle?: boolean) => {
+  const onSelectChain = useCallback(
+    async (targetChain: number, skipToggle?: boolean) => {
       if (!connector) return
 
-      switchToNetwork(connector, targetChain)
-        .then(() => {
-          if (!skipToggle) {
-            toggle()
-          }
-          history.replace({
-            search: replaceURLParam(history.location.search, 'chain', getChainNameFromId(targetChain)),
-          })
-        })
-        .catch((error) => {
-          console.error('Failed to switch networks', error)
+      switchChain(connector, targetChain)
 
-          // we want app network <-> chainId param to be in sync, so if user changes the network by changing the URL
-          // but the request fails, revert the URL back to current chainId
-          if (chainId) {
-            history.replace({ search: replaceURLParam(history.location.search, 'chain', getChainNameFromId(chainId)) })
-          }
-
-          if (!skipToggle) {
-            toggle()
-          }
-          dispatch(addPopup({ content: { failedSwitchNetwork: targetChain }, key: `failed-network-switch` }))
-        })
+      if (!skipToggle) {
+        toggle()
+      }
     },
-    [dispatch, connector, toggle, history, chainId]
+    [connector, toggle]
   )
 
   useEffect(() => {
@@ -292,9 +271,9 @@ export default function NetworkSelector() {
       history.replace({ search: replaceURLParam(history.location.search, 'chain', getChainNameFromId(chainId)) })
       // otherwise assume network change originates from URL
     } else if (urlChainId && urlChainId !== chainId) {
-      handleChainSwitch(urlChainId, true)
+      onSelectChain(urlChainId, true)
     }
-  }, [chainId, urlChainId, prevChainId, handleChainSwitch, history])
+  }, [chainId, urlChainId, prevChainId, onSelectChain, history])
 
   // set chain parameter on initial load if not there
   useEffect(() => {
@@ -320,10 +299,14 @@ export default function NetworkSelector() {
             <FlyoutHeader>
               <Trans>Select a network</Trans>
             </FlyoutHeader>
-            <Row onSelectChain={handleChainSwitch} targetChain={SupportedChainId.MAINNET} />
-            <Row onSelectChain={handleChainSwitch} targetChain={SupportedChainId.POLYGON} />
-            <Row onSelectChain={handleChainSwitch} targetChain={SupportedChainId.OPTIMISM} />
-            <Row onSelectChain={handleChainSwitch} targetChain={SupportedChainId.ARBITRUM_ONE} />
+            <Row onSelectChain={onSelectChain} targetChain={SupportedChainId.MAINNET} />
+            {connector !== fortmatic && (
+              <>
+                <Row onSelectChain={onSelectChain} targetChain={SupportedChainId.POLYGON} />
+                <Row onSelectChain={onSelectChain} targetChain={SupportedChainId.OPTIMISM} />
+                <Row onSelectChain={onSelectChain} targetChain={SupportedChainId.ARBITRUM_ONE} />
+              </>
+            )}
           </FlyoutMenuContents>
         </FlyoutMenu>
       )}

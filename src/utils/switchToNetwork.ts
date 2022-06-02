@@ -1,4 +1,5 @@
 import { Connector } from '@web3-react/types'
+import { network, walletConnect } from 'connectors'
 import { CHAIN_INFO } from 'constants/chainInfo'
 import { SupportedChainId } from 'constants/chains'
 import { INFURA_NETWORK_URLS } from 'constants/infura'
@@ -29,13 +30,18 @@ function getRpcUrls(chainId: SupportedChainId): [string] {
   throw new Error('RPC URLs must use public endpoints')
 }
 
-export async function switchToNetwork(connector: Connector, chainId: SupportedChainId): Promise<null | void> {
-  const info = CHAIN_INFO[chainId]
-  connector.activate({
-    chainId,
-    chainName: info.label,
-    rpcUrls: getRpcUrls(chainId),
-    nativeCurrency: info.nativeCurrency,
-    blockExplorerUrls: [info.explorer],
-  })
+export const switchChain = async (connector: Connector, chainId: number) => {
+  if (connector === walletConnect || connector === network) {
+    await connector.activate(chainId)
+  } else {
+    const info = CHAIN_INFO[chainId]
+    const addChainParameter = {
+      chainId,
+      chainName: info.label,
+      rpcUrls: getRpcUrls(chainId),
+      nativeCurrency: info.nativeCurrency,
+      blockExplorerUrls: [info.explorer],
+    }
+    await connector.activate(addChainParameter)
+  }
 }
