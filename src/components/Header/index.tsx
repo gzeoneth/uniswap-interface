@@ -1,6 +1,7 @@
 import { Trans } from '@lingui/macro'
 import useScrollPosition from '@react-hook/window-scroll'
 import { useWeb3React } from '@web3-react/core'
+import { isChainAllowed } from 'connectors'
 import { CHAIN_INFO } from 'constants/chainInfo'
 import { SupportedChainId } from 'constants/chains'
 import useTheme from 'hooks/useTheme'
@@ -76,7 +77,7 @@ const HeaderElement = styled.div`
     margin-left: 0.5em;
   }
 
-  /* addresses safari's lack of support for "gap" */
+  /* addresses safaris lack of support for "gap" */
   & > *:not(:first-child) {
     margin-left: 8px;
   }
@@ -246,7 +247,9 @@ const StyledExternalLink = styled(ExternalLink).attrs({
 `
 
 export default function Header() {
-  const { account, chainId } = useWeb3React()
+  const { account, chainId, connector } = useWeb3React()
+
+  const chainNotAllowed = chainId && !isChainAllowed(connector, chainId)
 
   const userEthBalance = useNativeCurrencyBalances(account ? [account] : [])?.[account ?? '']
   const [darkMode] = useDarkModeManager()
@@ -265,7 +268,7 @@ export default function Header() {
   const {
     infoLink,
     nativeCurrency: { symbol: nativeCurrencySymbol },
-  } = CHAIN_INFO[chainId ? chainId : SupportedChainId.MAINNET]
+  } = CHAIN_INFO[!chainId || chainNotAllowed ? SupportedChainId.MAINNET : chainId]
 
   return (
     <HeaderFrame showBackground={scrollY > 45}>
