@@ -451,9 +451,6 @@ index 17eefc9..ae07c6d 100644
              ];
              allCandidatePools = [...allCandidatePools, candidatePools];
          }
-+        console.log(1234)
-+        console.log(allRoutesWithValidQuotes)
-+        console.log(allCandidatePools)
          if (allRoutesWithValidQuotes.length == 0) {
              log.info({ allRoutesWithValidQuotes }, 'Received no valid quotes');
              return null;
